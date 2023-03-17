@@ -1,0 +1,40 @@
+\smalltitle{سوال 2}
+\begin{enumerate}
+    \item \phantom{a}
+    \begin{latin}
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+        \hline
+        Instructions & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 & 12\\
+        \hline
+        sub \$2, \$3, \$1 & F & D & X  & M  & W &    &    &   &   &   &   &   \\
+        \hline
+        lw \$5, 0(\$2)    &   & F & d* & d* & D & X  & M  & W &   &   &   &   \\
+        \hline
+        addi \$4, \$5, 1  &   &   &    &    & F & d* & d* & D & X & M & W &   \\
+        \hline
+        add \$5, \$3, \$1 &   &   &    &    &   &    &    & F & D & X & M & W \\
+        \hline
+    \end{tabular}
+    \end{latin}
+    \item \lr{Forward}ها با رنگ مشخص شده‌اند.
+    \begin{latin}
+    \centering
+    \begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|}
+        \hline
+        Instructions & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 & 12\\
+        \hline
+        sub \$2, \$3, \$1 & F & D & \textcolor{red}{X} & M & W  &   &   &   &   &   &   &   \\
+        \hline
+        lw \$5, 0(\$2)    &   & F & D & \textcolor{red}{X} & \textcolor{blue}{M} & W &   &   &   &   &   &   \\
+        \hline
+        addi \$4, \$5, 1  &   &   & F & D & d* & \textcolor{blue}{X} & M & W &   &   &   &   \\
+        \hline
+        add \$5, \$3, \$1 &   &   &   & F & d* & D & X & M & W &   &   &   \\
+        \hline
+    \end{tabular}
+    \end{latin}
+    \item \begin{gather*}
+        \frac{12-9}{12} \times 100 = 25\%
+    \end{gather*}
+\end{enumerate}
