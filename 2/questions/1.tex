@@ -1,2 +1,156 @@
 \section{\lr{Branch Prediction}}
 % https://courses.cs.washington.edu/courses/csep548/06au/lectures/branchPred.pdf
+طبق صحبت‌هایی که با فرود و آرش داشتم طوری که این سیستم کار می‌کند بدین صورت است که
+\lr{GHR}
+یک
+\lr{shift register}
+است. هر بار یکی عدد را به چپ شیفت می‌دیم و
+\lr{taken} یا \lr{not taken}
+بودن
+\lr{branch}
+را وارد می‌کنیم. سپس به نگاه کردن به آن رجیستر و در آوردن
+\lr{entry}
+مربوط به آن در جدول
+\lr{PHT}
+حدس می‌زنیم که یک
+\lr{branch}،
+\lr{taken}
+است یا خیر.
+
+می‌توان مانند زیر صرفا حالت
+\lr{GHR}
+را نوشت در کنار هر
+\lr{branch}
+که باید یا نباید
+\lr{predict}
+شود.
+\begin{latin}
+\centering
+\begin{tabular}{|c|c|c|}
+    \hline
+    Branch \# & GHR & Taken\\
+    \hline
+    0 & NN & T\\
+    \hline
+    1 & NT & T\\
+    \hline
+    2 & TT & T\\
+    \hline
+    3 & TT & N\\
+    \hline
+    4 & TN & T\\
+    \hline
+    5 & NT & N\\
+    \hline
+    6 & TN & T\\
+    \hline
+    7 & NT & T\\
+    \hline
+    8 & TT & T\\
+    \hline
+    9 & TT & N\\
+    \hline
+\end{tabular}
+\end{latin}
+هر کدام از این حالات
+\lr{GHR}
+را بررسی می‌کنیم.
+\begin{itemize}
+    \item \lr{TT}:‌ در این حالت در ابتدا یک
+    \lr{branch}
+    که باید
+    $T$
+    باشد باید
+    $N$
+    \lr{predict}
+    شود. سپس باید
+    $T$
+    باید
+    \lr{predict}
+    شود و سپس
+    دوباره
+    $N$ و سپس $T$
+    شود. پس تنها حالت اولیه ممکن برای این حالت
+    $01$
+    است.
+    \item \lr{TN}: در این حالت دو برنچ باید به صورت
+    $N$
+    پیش بینی شوند. پس باید مقدار اولیه
+    $00$
+    باشد.
+    \item \lr{NT}: مثل \lr{TT} باشد باشد.
+    \item \lr{NN}: فقط یک برنچ باید \lr{not taken} \lr{predict} شود پس باید یا
+    $00$ باشد یا $01$.
+\end{itemize}
+
+برای قسمت دوم سوال این بار برای هر یک از
+\lr{branch}ها
+یک رجیستر جداگانه دارند. برای این کار کافی است که برای
+\lr{branch}
+اول جدول به صورت زیر باشد:
+\begin{latin}
+    \centering
+    \begin{tabular}{|c|c|}
+        \hline
+        PHT Entry & Value\\
+        \hline
+        NN & 11\\
+        \hline
+        NT & 11\\
+        \hline
+        TN & Dont care\\
+        \hline
+        TT & 11\\
+        \hline
+    \end{tabular}
+\end{latin}
+برای برنچ دوم عملا رشته‌ی زیر
+\lr{branch}های
+ما هستند:
+\begin{gather*}
+    TNNTNNTNN\dots
+\end{gather*}
+برای همین جدول ما باید به صورت زیر باشد:
+\begin{latin}
+    \centering
+    \begin{tabular}{|c|c|}
+        \hline
+        PHT Entry & Value\\
+        \hline
+        NN & 11\\
+        \hline
+        NT & 00\\
+        \hline
+        TN & 00\\
+        \hline
+        TT & Dont care\\
+        \hline
+    \end{tabular}
+\end{latin}
+با ادغام دو جدول مشکلی بر روی
+\lr{NN}، \lr{TN} و \lr{TT}
+نداریم. ولی بر روی
+\lr{NT}
+مشکل داریم. با خواندن دقیق تر سوال متوجه می‌شویم که سوال صرفا از ما می‌خواهد که الگوی کلی
+$TTTNTN\dots$
+ بررسی کنیم در حالت \lr{stable} که در اینجا اصلا برای
+\lr{branch}
+اول اصلا
+$NN$ و $NT$
+هم مهم نیست. پس در نتیجه جدول نهایی ما برابر می‌شود با:
+\begin{latin}
+    \centering
+    \begin{tabular}{|c|c|}
+        \hline
+        PHT Entry & Value\\
+        \hline
+        NN & 11\\
+        \hline
+        NT & 00\\
+        \hline
+        TN & 00\\
+        \hline
+        TT & 11\\
+        \hline
+    \end{tabular}
+\end{latin}
