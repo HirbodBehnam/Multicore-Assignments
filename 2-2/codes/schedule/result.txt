@@ -1,0 +1,9 @@
+a-dynamic.out: 0.892897
+a-guided.out: 0.58524
+a-static.out: 0.61789
+b-dynamic.out: 1630.18
+b-guided.out: 1624.01
+b-static.out: 1822.85
+c-dynamic.out: 1615.35
+c-guided.out: 1639.59
+c-static.out: 2211.31
