@@ -1,0 +1,12 @@
+if (r - l > SERIAL_THRESHOLD) {
+    #pragma omp parallel sections
+    {
+    #pragma omp section
+    mergeSort(arr, l, m);
+    #pragma omp section
+    mergeSort(arr, m + 1, r);
+    }
+} else {
+    mergeSort(arr, l, m);
+    mergeSort(arr, m + 1, r);
+}

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <omp.h>
 
-#define N 10
+#define N 20
 
 int fibonacci(int n)
 {
@@ -9,8 +9,15 @@ int fibonacci(int n)
 
     if (n < 2) 
         return 1;
-    x = fibonacci(n-1);
-    y = fibonacci(n-2);
+
+    #pragma omp parallel sections
+    {
+        #pragma omp section
+        x = fibonacci(n-1);
+
+        #pragma omp section
+        y = fibonacci(n-2);
+    }
 
     return x + y;
 }
@@ -19,7 +26,7 @@ int main ( void )
 {
   int i, fib[N];
 
-  // TODO: parallelize 
+  #pragma omp parallel for schedule(dynamic)
   for(i = 0 ; i < N; i++)
       fib[i] = fibonacci(i);
 
