@@ -2,27 +2,27 @@
 #include<stdio.h> 
 #include<stdlib.h> 
 
-#define N 100       // TODO: change this with the maximum number you can
+#define N 800
 
 int main() { 
-    int A[N][N], B[N][N], C[N][N], i, j, k, sum;
+    int A[N][N], B[N][N], C[N][N];
     // initialize matrices with numbers in the range [-5, 5]
-    for (i = 0; i < N; i++) {
-        for (j = 0; j < N; j++) { 
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) { 
             A[i][j] = rand() % 11 - 5; 
             B[i][j] = rand() % 11 - 5; 
         }
     }
 
-    omp_set_num_threads(1);     // TODO: set this to 1, 4, 16, and 64
+    omp_set_num_threads(7);
     double start, end; 
     start = omp_get_wtime();    // start time measurement
 
-    // TODO: parallelize this section in two ways
-    for (i = 0; i < N; i++) { 
-        for (j = 0; j < N; j++) { 
-            sum = 0;
-            for (k = 0; k < N; k++) { 
+    #pragma omp parallel for schedule(static)
+    for (int i = 0; i < N; i++) { 
+        for (int j = 0; j < N; j++) { 
+            int sum = 0;
+            for (int k = 0; k < N; k++) { 
                 sum += A[i][k] * B[k][j];
             }
             C[i][j] = sum; 

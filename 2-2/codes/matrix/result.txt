@@ -1,0 +1,10 @@
+matrix-inner-16.out: 546.336
+matrix-inner-1.out: 1324.31
+matrix-inner-4.out: 355.35
+matrix-inner-64.out: 595.245
+matrix-inner-8.out: 519.504
+matrix-outer-16.out: 513.073
+matrix-outer-1.out: 1328.48
+matrix-outer-4.out: 353.133
+matrix-outer-64.out: 508.869
+matrix-outer-8.out: 502.793
