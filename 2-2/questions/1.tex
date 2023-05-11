@@ -1,0 +1,16 @@
+\section{\lr{Basic OMP}}
+\begin{enumerate}
+    \item \begin{itemize}
+        \item \lr{static}: در این حالت به هر کدام از ترد‌ها مقادیری که باید بر روی آنها
+        \lr{iteration}
+        انجام دهند مشخص می‌شوند.
+        \item \lr{dynamic}: در ابتدا به هرد ترد یک \lr{iteration}
+        از حلقه‌ی اصلی داده می‌شود. در صورتی که تردی کارش را انجام دهد به صورت داینامیک مقدار بعدی
+        \lr{iteration}
+        را می‌گیرد.
+        \item \lr{guided}: در ابتدا مثل \lr{static} است.
+        یعنی به صورت مساوی
+        \lr{iteration}ها
+        را بین ترد‌ها تقسیم می‌کند. ولی اگر کار یک ترد زودتر تمام شود سعی می‌کند که کار‌های ترد‌های دیگر را بگیرد.
+    \end{itemize}
+\end{enumerate}
