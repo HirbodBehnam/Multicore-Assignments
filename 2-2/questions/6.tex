@@ -1,1 +1,32 @@
 \section{\lr{Max Flow}}
+در این سوال از کد‌های
+\link{https://www.geeksforgeeks.org/dinics-algorithm-maximum-flow/}{این لینک}
+و
+\link{https://github.com/KatiaVi/418MaxFloProject}{این لینک}
+استفاده کردم. صرفا فقط مقداری کد
+\lr{Geeks For Geeks}
+را عوض کردم که از
+\lr{STL}های
+خود
+\lr{CPP}
+استفاده کند. صرفا جایی که می‌توان الگوریتم را بهینه کرد جایی است که از
+\lr{BFS}
+استفاده می‌کنیم. می‌توان همزمان تمامی همسایه‌ها را باز کرد و دید. برای این کار تابع
+\lr{bfs}
+را صرفا به کمک
+\codeword{\#pragma omp parallel for}
+موازی سازی می‌کنیم. دقت کنید که اضافه کردن هر راس به
+\lr{queue}
+نیز نیازمند
+\lr{lock}
+است. حال سرعت برنامه را تست می‌کنیم.
+\samplebox{./serial.out delaunay\_n17.txt\\
+Creating graph with size of 131072\\
+Read graph file\\
+Maximum flow 1890\\
+Took 1.07326 s}
+\samplebox{./parallel.out delaunay\_n17.txt\\
+Creating graph with size of 131072\\
+Read graph file\\
+Maximum flow 1890\\
+Took 13.2472 s}
