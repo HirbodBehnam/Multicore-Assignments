@@ -30,3 +30,38 @@ Creating graph with size of 131072\\
 Read graph file\\
 Maximum flow 1890\\
 Took 13.2472 s}
+این افزایش سرعت احتمالا از این موضوع می‌آید که درجات گراف ما کم است و در نتیجه
+\lr{BFS}
+خیلی سودی ندارد. برای چک کردن این موضوع برنامه‌ای نوشتم که تعداد راس‌ها با درجات مختلف را به من گزارش
+می‌داد. نتیجه به صورت زیر است:
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}
+    \begin{axis}
+    \addplot table [x=degree, y=count, col sep=comma] {codes/max-flow/n17.csv};
+    \end{axis}
+    \end{tikzpicture}
+    \caption{تعداد راس‌ها بر حسب درجه}
+\end{figure}
+همان طور که مشخص است اکثر راس‌ها درجات کمی دارند. برای همین اصلا نمی‌صرفد که موازی اجرا کنیم.
+حال کمی کد را تغییر می‌دهیم که فقط راس‌ها با درجات بیشتر از 16 موازی سازی شوند.
+\samplebox{./parallel2.out delaunay\_n17.txt\\
+Creating graph with size of 131072\\
+Read graph file\\
+Maximum flow 1890\\
+Took 1.26311 s}
+همان طور که مشاهده می‌شود سرعت برنامه بهتر شد ولی باز‌هم خیلی خوب نیست. به همین جهت من یک تست دیگر
+ساختم که یک گراف کامل است. تست را با 2048 راس شروع کردم و نتیجه سری و موازی به صورت زیر شد:
+\samplebox{./serial.out test.txt \\
+Creating graph with size of 2048\\
+Read graph file\\
+Maximum flow 997610\\
+Took 0.0543808 s}
+\samplebox{./parallel2.out test.txt\\
+Creating graph with size of 2048\\
+Read graph file\\
+Maximum flow 997610\\
+Took 0.0735186 s}
+همان طور که مشاهده می‌شود باز هم سرعت برنامه کمتر شد. به نظر من دلیل اصلی آن این است که من خوب
+موازی سازی ‌نمی‌کنم. مثلا در لینکی که در اول کار آورده بودم یک قسمت دیگر از برنامه نیز موازی سازی
+شده بود.
