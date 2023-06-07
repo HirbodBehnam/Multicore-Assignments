@@ -1,0 +1,25 @@
+\section{\lr{Vector Processing}}
+\begin{enumerate}
+    \item سعی کردم که در کد کامنت‌هایی قرار دهم که فهم آن راحت‌تر شود:
+    \codesample{codes/3-a.s}
+    پس برای حساب کردن تعداد کلاک‌ها در ابتدا حساب می‌کنیم که قسمت
+    \lr{initialize}
+    کردن کد چه قدر زمان می‌برد.
+    \begin{gather*}
+        1 + 4 \times 1 = 5
+    \end{gather*}
+    حال هر حلقه‌ی
+    \lr{loop}
+    را حساب می‌کنیم.
+    \begin{gather*}
+        11 + 11 + 6 + 11 + 4 + 1 + 11 + 4 + 1 = 60
+    \end{gather*}
+    در مجموع نیز ۱۰۰ بار این حلقه اجرا می‌شود پس در نهایت داریم:
+    \begin{gather*}
+        60 \times 100 + 5 = 6005
+    \end{gather*}
+    \item کد را به صورت زیر می‌نویسیم:
+    \codesample{codes/3-b.s}
+    برای محاسبه مشخص است که در ابتدا دو دستور \lr{SET} تنها دو کلاک را از ما می‌گیرند.
+    
+\end{enumerate}
