@@ -21,5 +21,35 @@
     \item کد را به صورت زیر می‌نویسیم:
     \codesample{codes/3-b.s}
     برای محاسبه مشخص است که در ابتدا دو دستور \lr{SET} تنها دو کلاک را از ما می‌گیرند.
-    
+    بقیه‌ی دستورات را نیز در زیر آوردام که چه قدر طول می‌کشند.
+    همچنین فرض می‌کنیم تعداد بانک‌های حافظه حداقل 11 است.
+    \begin{gather*}
+        \underbrace{1 + 1}_{\text{\lr{SET}}} + \underbrace{11 + 63}_{\text{\lr{VLD, V0, B}}} + \underbrace{11 + 63}_{\text{\lr{VLD, V1, C}}} + \underbrace{6 + 63}_{\text{\lr{VMUL V0, V0, V1}}} + \underbrace{11 + 63}_{\text{\lr{VLD V1, D}}} + \underbrace{4 + 63}_{\text{\lr{VADD V0, V0, V1}}} + \underbrace{1}_{\text{\lr{VRSHFA}}} + \underbrace{11 + 63}_{\text{\lr{VST V0, A}}} \\
+        = 435
+    \end{gather*}
+    برای قسمت دوم کد نیز به صورت مشابه داریم:
+    \begin{gather*}
+        \underbrace{1}_{\text{\lr{SET}}} + \underbrace{11 + 35}_{\text{\lr{VLD, V0, B}}} + \underbrace{11 + 35}_{\text{\lr{VLD, V1, C}}} + \underbrace{6 + 35}_{\text{\lr{VMUL V0, V0, V1}}} + \underbrace{11 + 35}_{\text{\lr{VLD V1, D}}} + \underbrace{4 + 35}_{\text{\lr{VADD V0, V0, V1}}} + \underbrace{1}_{\text{\lr{VRSHFA}}} + \underbrace{11 + 35}_{\text{\lr{VST V0, A}}} \\
+        = 255
+    \end{gather*}
+    پس در نهایت
+    $435 + 255 = 690$
+    کلاک زمان می‌برد.
+    \item در این حالت عملا زمان خواندن از مموری درجا می‌توان داده را به \lr{ALU} داد. فرض کردم که برای شیفت دادن
+    داده باید به صورت کامل آماده در رجیستر قرار داشته باشد. سپس شکلی مانند اسلاید‌های درس کشیدم:
+    \begin{figure}[H]
+        \centering
+        \includegraphics[scale=0.45]{pics/3-c.png}
+    \end{figure}
+    پس برای حساب کردن زمان اجرا داریم:
+    \begin{gather*}
+        11 + 63 + 11 + 63 + 11 + 4 + 63 + 1 + 6 + 63 = 296
+    \end{gather*}
+    به صورت مشابه برای قسمت دوم نیز داریم:
+    \begin{gather*}
+        11 + 35 + 11 + 35 + 11 + 4 + 35 + 1 + 6 + 35 = 184
+    \end{gather*}
+    پس در کل
+    $480$
+    سیکل طول می‌کشد.
 \end{enumerate}

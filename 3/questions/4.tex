@@ -1,1 +1,32 @@
 \section{SIMD}
+\begin{enumerate}
+    \item به نظر من \lr{vector processor}ها فضای کمتری درگیر می‌کنند
+    چرا که برخلاف \lr{array processor} نیازی نیست که
+    به تعداد خانه‌های داخل
+    \lr{register}
+    به عنوان مثال
+    \lr{adder} یا ضرب کننده
+    داشته باشیم و صرفا یکی کافی است.
+    \item اگر فرض کنیم که هر یک از عملیات به صورت
+    \lr{pipelined}
+    به خود
+    \lr{PU}
+    داده می‌شوند آنگاه کافی است که معادله‌ی زیر را حل کنیم:
+    \begin{gather*}
+        5 + \text{\lr{VLEN}} - 1 + 5 + \text{\lr{VLEN}} - 1 + 15 + \text{\lr{VLEN}} - 1 = 52\\
+        \implies 3 \text{\lr{VLEN}} = 30 \implies \text{\lr{VLEN}} = 10
+    \end{gather*}
+    \item با توجه به بند سوم نمی‌توان \lr{chain} انجام داد پس کافی است که معادله‌ی زیر را حل کنیم.
+    در این معادله در ابتدا فرض می‌کنیم که تعداد المان‌های بردار کمتر مساوی 16 است که در این حالت
+    \begin{gather*}
+        20 + \text{\lr{VLEN}} - 1 + 20 + \text{\lr{VLEN}} - 1 + 5 + \text{\lr{VLEN}} - 1 + 1 + \text{\lr{VLEN}} - 1 + 20 + \text{\lr{VLEN}} - 1 = 94\\
+        \implies 5 \text{\lr{VLEN}} + 61 = 94
+    \end{gather*}
+    \item در ابتدا تعداد عملیات مورد نیاز برای
+    \lr{VADD} و \lr{VSHR}
+    را از تعداد کلاک‌ها کم می‌کنیم:
+    \begin{gather*}
+        170 - (5 + 16 - 1) - (1 + 16 - 1) = 134
+    \end{gather*}
+    TODO
+\end{enumerate}
