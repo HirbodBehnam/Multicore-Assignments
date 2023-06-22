@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include "bmp.c"
 #include <assert.h>
 #include <immintrin.h>
@@ -56,17 +55,18 @@ extract_window(const byte *pixels_input, struct pixel output_pixels[WINDOW_SIZE]
 
 struct pixel weighting_average(const byte window_sum, const byte window[WINDOW_SIZE][WINDOW_SIZE],
                                const struct pixel image_window[WINDOW_SIZE][WINDOW_SIZE]) {
-    uint64 red = 0, green = 0, blue = 0;
+    /**
+     * Here is how I encode these variables. I use SSE3 to store 4 integers. Three for RGB and one zero.
+     * C compiler automatically uses SSE3 instructions to compile this app.
+     */
+    __v4si result = {0, 0, 0, 0};
     for (int i = 0; i < WINDOW_SIZE; i++)
         for (int j = 0; j < WINDOW_SIZE; j++) {
-            red += window[i][j] * image_window[i][j].red;
-            green += window[i][j] * image_window[i][j].green;
-            blue += window[i][j] * image_window[i][j].blue;
+            __v4si current_pixel = {image_window[i][j].red, image_window[i][j].green, image_window[i][j].blue, 0};
+            result += current_pixel * ((int) window[i][j]);
         }
-    red /= window_sum;
-    green /= window_sum;
-    blue /= window_sum;
-    struct pixel pixel = {.red = red, .green = green, .blue = blue};
+    result /= (int) window_sum;
+    struct pixel pixel = {.red = result[0], .green = result[1], .blue = result[2]};
     return pixel;
 }
 
