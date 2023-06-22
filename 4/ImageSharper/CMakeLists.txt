@@ -3,5 +3,5 @@ project(ImageSharper C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(ImageSharper main.c bmp.c)
+add_executable(ImageSharper main.c)
 target_link_libraries(ImageSharper m)

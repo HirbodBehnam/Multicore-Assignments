@@ -54,6 +54,22 @@ extract_window(const byte *pixels_input, struct pixel output_pixels[WINDOW_SIZE]
         }
 }
 
+struct pixel weighting_average(const byte window_sum, const byte window[WINDOW_SIZE][WINDOW_SIZE],
+                               const struct pixel image_window[WINDOW_SIZE][WINDOW_SIZE]) {
+    uint64 red = 0, green = 0, blue = 0;
+    for (int i = 0; i < WINDOW_SIZE; i++)
+        for (int j = 0; j < WINDOW_SIZE; j++) {
+            red += window[i][j] * image_window[i][j].red;
+            green += window[i][j] * image_window[i][j].green;
+            blue += window[i][j] * image_window[i][j].blue;
+        }
+    red /= window_sum;
+    green /= window_sum;
+    blue /= window_sum;
+    struct pixel pixel = {.red = red, .green = green, .blue = blue};
+    return pixel;
+}
+
 int main() {
     /* start reading the file and its information*/
     byte *pixels_input;
@@ -75,11 +91,14 @@ int main() {
     const byte window_sum = 16;
 
     /* start replacing green screen */
-    for (int i = 0; i < width_input; i++) {
-        for (int j = 0; j < height_input; j++) {
+    for (int i = 0; i < height_input; i++) {
+        for (int j = 0; j < width_input; j++) {
             struct pixel image_window[WINDOW_SIZE][WINDOW_SIZE];
-            extract_window(pixels_input, image_window, i, j, width_input, height_input);
-            // TODO
+            extract_window(pixels_input, image_window, j, i, width_input, height_input);
+            struct pixel result = weighting_average(window_sum, window, image_window);
+            pixels_output[(i * width_input + j) * BYTES_PER_PIXEL] = result.red;
+            pixels_output[(i * width_input + j) * BYTES_PER_PIXEL + 1] = result.green;
+            pixels_output[(i * width_input + j) * BYTES_PER_PIXEL + 2] = result.blue;
         }
     }
 
