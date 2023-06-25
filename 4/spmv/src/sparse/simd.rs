@@ -7,9 +7,61 @@ pub struct SparseMatrix {
     inner: Vec<Vec<RowElement<f32>>>,
 }
 
+impl SparseMatrix {
+    unsafe fn mul_avx2(&self, vector: &Vec<f32>) -> Vec<f32> {
+        use std::arch::x86_64::*;
+        let mut result: Vec<f32> = Vec::with_capacity(self.inner.len());
+        for row in &self.inner {
+            // for each row...
+            let mut acc = 0f32;
+            for chunk in row.chunks(8) {
+                // chunk them into 8 elem data
+                let mut buffer = chunk.iter().map(|c| c.value).collect::<Vec<f32>>();
+                buffer.resize(8, 0f32);
+                let elems = _mm256_set_ps(buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7]);
+                // extract the pairwise elements from vector
+                buffer = chunk.iter().map(|c| vector[c.index]).collect::<Vec<f32>>();
+                buffer.resize(8, 0f32);
+                let vec_elems = _mm256_set_ps(buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7]);
+                // mult them together. This register has 8 float values
+                let result = _mm256_mul_ps(elems, vec_elems);
+                // mostly from https://stackoverflow.com/a/9776522/4213397
+                /*
+                 * sum[0] = x[0] + x[1]
+                 * sum[1] = x[2] + x[3]
+                 * sum[2] = x[0] + x[1]
+                 * sum[3] = x[2] + x[3]
+                 * sum[4] = x[4] + x[5]
+                 * sum[5] = x[6] + x[7]
+                 * sum[6] = x[4] + x[5]
+                 * sum[7] = x[6] + x[7]
+                 */
+                let mut sum = _mm256_hadd_ps(result, result);
+                /*
+                 * sum[0] = x[0] + x[1] + x[2] + x[3]
+                 * sum[1] = x[0] + x[1] + x[2] + x[3]
+                 * sum[2] = x[0] + x[1] + x[2] + x[3]
+                 * sum[3] = x[0] + x[1] + x[2] + x[3]
+                 * sum[4] = x[4] + x[5] + x[6] + x[7]
+                 * sum[5] = x[4] + x[5] + x[6] + x[7]
+                 * sum[6] = x[4] + x[5] + x[6] + x[7]
+                 * sum[7] = x[4] + x[5] + x[6] + x[7]
+                 */
+                sum = _mm256_hadd_ps(sum, sum);
+                let sum_high = _mm256_extractf128_ps(sum, 1);
+                let final_sum = _mm_add_ps(sum_high, _mm256_castps256_ps128(sum));
+                // accumulate
+                acc += _mm_cvtss_f32(final_sum);
+            }
+            result.push(acc);
+        }
+        return result;
+    }
+}
+
 impl SpMV for SparseMatrix {
     fn mul(&self, vector: &Vec<f32>) -> Vec<f32> {
-        todo!()
+        unsafe { self.mul_avx2(vector) }
     }
 }
 
@@ -80,7 +132,7 @@ mod tests {
             let matrix = gen.debug_matrix(DEBUG_MATRIX_SIZE);
             let vector = gen.debug_vector(DEBUG_MATRIX_SIZE);
             let mut wrapper = utils::Wrapper::wrap(matrix);
-            assert!(wrapper.check_mul::<SpmvMatrix>(vector))
+            wrapper.check_mul::<SpmvMatrix>(vector);
         }
     }
 
@@ -91,7 +143,7 @@ mod tests {
             let matrix = gen.matrix(STRESS_MATRIX_SIZE);
             let vector = gen.vector(STRESS_MATRIX_SIZE);
             let mut wrapper = utils::Wrapper::wrap(matrix);
-            assert!(wrapper.check_mul::<SpmvMatrix>(vector))
+            wrapper.check_mul::<SpmvMatrix>(vector);
         }
     }
 }

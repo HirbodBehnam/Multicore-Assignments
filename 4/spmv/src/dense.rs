@@ -68,7 +68,7 @@ mod tests {
             let matrix = gen.debug_matrix(DEBUG_MATRIX_SIZE);
             let vector = gen.debug_vector(DEBUG_MATRIX_SIZE);
             let mut wrapper = utils::Wrapper::wrap(matrix);
-            assert!(wrapper.check_mul::<SpmvMatrix>(vector))
+            wrapper.check_mul::<SpmvMatrix>(vector);
         }
     }
 
@@ -79,7 +79,7 @@ mod tests {
             let matrix = gen.matrix(STRESS_MATRIX_SIZE);
             let vector = gen.vector(STRESS_MATRIX_SIZE);
             let mut wrapper = utils::Wrapper::wrap(matrix);
-            assert!(wrapper.check_mul::<SpmvMatrix>(vector))
+            wrapper.check_mul::<SpmvMatrix>(vector);
         }
     }
 }

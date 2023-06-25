@@ -29,12 +29,12 @@ impl Wrapper {
         }
     }
 
-    pub fn check_mul<W: SpMV>(&mut self, vector: Vec<f32>) -> bool {
+    pub fn check_mul<W: SpMV>(&mut self, vector: Vec<f32>) {
         let matrix = take(&mut self.matrix);
         let valid_out = mul(&matrix, &vector);
         let spmv_out = W::from(matrix).mul(&vector);
 
-        valid_out == spmv_out
+        assert_eq!(valid_out, spmv_out);
     }
 }
 

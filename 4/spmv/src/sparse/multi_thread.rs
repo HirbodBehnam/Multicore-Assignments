@@ -16,10 +16,11 @@ impl SpMV for SparseMatrix {
         thread::scope(|s| {
             for i in 0..THREAD_NUMBER {
                 let mutex_ref = &result; // what the fuck rust?
+                let matrix_data = &self.inner;
                 s.spawn(move || {
                     let mut index = i;
-                    while index < *(&self.inner.len()) {
-                        let cell: f32 = *(&self.inner[index].iter().map(|elem| elem.value * vector[elem.index]).sum());
+                    while index < matrix_data.len() {
+                        let cell: f32 = matrix_data[index].iter().map(|elem| elem.value * vector[elem.index]).sum();
                         mutex_ref.lock().unwrap()[index] = cell;
                         index += THREAD_NUMBER;
                     }
@@ -97,7 +98,7 @@ mod tests {
             let matrix = gen.debug_matrix(DEBUG_MATRIX_SIZE);
             let vector = gen.debug_vector(DEBUG_MATRIX_SIZE);
             let mut wrapper = utils::Wrapper::wrap(matrix);
-            assert!(wrapper.check_mul::<SpmvMatrix>(vector))
+            wrapper.check_mul::<SpmvMatrix>(vector);
         }
     }
 
@@ -108,7 +109,7 @@ mod tests {
             let matrix = gen.matrix(STRESS_MATRIX_SIZE);
             let vector = gen.vector(STRESS_MATRIX_SIZE);
             let mut wrapper = utils::Wrapper::wrap(matrix);
-            assert!(wrapper.check_mul::<SpmvMatrix>(vector))
+            wrapper.check_mul::<SpmvMatrix>(vector);
         }
     }
 }
