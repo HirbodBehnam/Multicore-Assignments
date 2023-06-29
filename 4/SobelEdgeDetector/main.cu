@@ -2,15 +2,18 @@
 #include "reader.cuh"
 #include "brighter.cuh"
 #include "saver.cuh"
+#include "sobel.cuh"
 
 int main(int argc, char **argv) {
     // Check arguments
     if (argc < 3) {
-        std::cout << "Program usage:" << std::endl << argv[0] << " INPUT_NAME BRIGHTNESS_ALPHA" << std::endl;
+        std::cout << "Program usage:" << std::endl << argv[0] << " INPUT_NAME BRIGHTNESS_ALPHA [THRESHOLD]"
+                  << std::endl;
         exit(1);
     }
     float alpha = strtof(argv[2], nullptr);
-    std::cout << "Running with " << alpha << " as alpha" << std::endl;
+    auto threshold = static_cast<int16_t>(argc > 3 ? strtol(argv[3], nullptr, 10) : 70);
+    std::cout << "Running with " << alpha << " as alpha and " << threshold << " as threshold" << std::endl;
     // Read the image
     std::cout << "Reading input..." << std::endl;
     uint8_t *grayscale_image;
@@ -22,5 +25,19 @@ int main(int argc, char **argv) {
     brighter(grayscale_image, width * height, alpha);
     save_grayscale_image("brighten.png", grayscale_image, width, height);
     // Edge detect it
+    uint8_t *Gx, *Gy, *G;
+    cudaMalloc(&Gx, width * height);
+    cudaMalloc(&Gy, width * height);
+    cudaMalloc(&G, width * height);
+    sobel_edge_detection(grayscale_image, width, height, threshold, Gx, Gy, G);
+    // Save images
+    save_grayscale_image("Gx.png", Gx, width, height);
+    save_grayscale_image("Gy.png", Gy, width, height);
+    save_grayscale_image("G.png", G, width, height);
+    // Cleanup
+    cudaFree(G);
+    cudaFree(Gy);
+    cudaFree(Gy);
+    cudaFree(grayscale_image);
     return 0;
 }
