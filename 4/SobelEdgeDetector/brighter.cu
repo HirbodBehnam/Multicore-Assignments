@@ -4,6 +4,11 @@
 #define GRID_SIZE 1024
 #define BLOCK_SIZE 1024
 
+__device__ float clamp_pixel(float x) {
+    return max(0.0f, min(255.0f, x));
+}
+
+
 /**
  * Makes an grayscale image brighter by multiplying its pixel by a value
  * @param grayscale_image The image
@@ -20,7 +25,7 @@ brighten_image(uint8_t *grayscale_image, const size_t image_size, const size_t i
         if (current_index >= image_size)
             break;
         grayscale_image[current_index] = static_cast<uint8_t>(
-                static_cast<float>(grayscale_image[current_index]) * alpha);
+                clamp_pixel(static_cast<float>(grayscale_image[current_index]) * alpha));
     }
 }
 

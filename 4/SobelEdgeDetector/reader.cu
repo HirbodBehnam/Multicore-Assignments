@@ -40,8 +40,8 @@ void read_to_grayscale(const char *filepath, uint8_t **data, int *width, int *he
         exit(1);
     }
     // Set the width and height
-    *width = image.cols;
-    *height = image.rows;
+    *height = image.cols;
+    *width = image.rows;
     // Convert to grayscale
     const size_t image_data_size = image.cols * image.rows * BYTES_PER_PIXEL;
     // At first allocate stuff on GPU
