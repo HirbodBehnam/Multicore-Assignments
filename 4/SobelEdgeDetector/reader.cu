@@ -34,7 +34,7 @@ grayscale_image(const uchar *image, uint8_t *grayscale_image, const size_t image
 
 void read_to_grayscale(const char *filepath, uint8_t **data, int *width, int *height) {
     // Load the image
-    cv::Mat image = cv::imread("input.jpg");
+    cv::Mat image = cv::imread(filepath);
     if (image.empty()) {
         std::cout << "Cannot load image." << std::endl;
         exit(1);
@@ -43,7 +43,7 @@ void read_to_grayscale(const char *filepath, uint8_t **data, int *width, int *he
     *width = image.cols;
     *height = image.rows;
     // Convert to grayscale
-    const auto image_data_size = image.cols * image.rows * BYTES_PER_PIXEL;
+    const size_t image_data_size = image.cols * image.rows * BYTES_PER_PIXEL;
     // At first allocate stuff on GPU
     uchar *gpu_image;
     cudaMalloc(&gpu_image, image_data_size);
@@ -52,7 +52,7 @@ void read_to_grayscale(const char *filepath, uint8_t **data, int *width, int *he
     // Now start the kernel
     const size_t number_of_iterations = (image_data_size / GRID_SIZE / BLOCK_SIZE / BYTES_PER_PIXEL) + 1;
     grayscale_image<<<GRID_SIZE, BLOCK_SIZE>>>(gpu_image, *data, image_data_size, number_of_iterations);
-    auto thread_err = cudaDeviceSynchronize();
+    cudaError_t thread_err = cudaDeviceSynchronize();
     if (thread_err != cudaSuccess) {
         std::cout << "Cannot execute tasks: " << cudaGetErrorString(thread_err) << std::endl;
         exit(1);
