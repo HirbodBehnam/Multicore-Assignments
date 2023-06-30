@@ -1,5 +1,7 @@
 #include <iostream>
+#include <vector>
 #include "sobel.cuh"
+#include "saver.cuh"
 
 // Mostly from https://github.com/fzehracetin/sobel-edge-detection-in-c
 
@@ -64,6 +66,8 @@ __device__ void extract_window(const uint8_t *image, const struct coordinates co
     }                                                       \
     if (RESULT > THRESHOLD)                                 \
         RESULT = THRESHOLD;                                 \
+    if (RESULT < 0)                                         \
+        RESULT = 0;                                         \
 } while(0)
 
 __global__ void sobel_edge_detection_gpu(const uint8_t *image, const int width, const int height,
@@ -78,13 +82,13 @@ __global__ void sobel_edge_detection_gpu(const uint8_t *image, const int width, 
         // Extract the coordinates of current index
         const struct coordinates current_coordinates = extract_coordinates(current_index, width);
         int16_t window[3][3];
-        int16_t Gx_elem, Gy_elem;
+        float Gx_elem, Gy_elem;
         extract_window(image, current_coordinates, width, height, window);
         CONVOLUTION(window, Mx, Gx_elem, threshold);
         CONVOLUTION(window, My, Gy_elem, threshold);
-        Gx[current_index] = Gx_elem;
-        Gy[current_index] = Gy_elem;
-        G[current_index] = static_cast<uint8_t>(sqrt(static_cast<float>(Gx_elem * Gx_elem + Gy_elem + Gy_elem)));
+        Gx[current_index] = static_cast<uint8_t>(Gx_elem);
+        Gy[current_index] = static_cast<uint8_t>(Gy_elem);
+        G[current_index] = static_cast<uint8_t>(hypot(Gx_elem, Gy_elem));
     }
 }
 
@@ -118,4 +122,54 @@ void sobel_edge_detection(const uint8_t *image, int width, int height, int16_t t
         std::cout << "Cannot execute tasks: " << cudaGetErrorString(thread_err) << std::endl;
         exit(1);
     }
+}
+
+static void
+extract_window_cpu(const std::vector<std::vector<uint8_t>> &image, const struct coordinates cor, const int width,
+                   const int height,
+                   int16_t window[3][3]) {
+    for (int i = -1; i <= 1; i++)
+        for (int j = -1; j <= 1; j++) {
+            const struct coordinates current_cord{
+                    .x = cor.x + i,
+                    .y = cor.y + j,
+            };
+            int16_t result = 0;
+            if (current_cord.x >= 0 && current_cord.y >= 0 && current_cord.x < width && current_cord.y < height) {
+                // in bounds of image
+                result = image.at(current_cord.y).at(current_cord.x);
+            }
+            window[j + 1][i + 1] = result;
+        }
+}
+
+void sobel_edge_detection_cpu(const uint8_t *gpu_image, int width, int height, int16_t threshold, bool show) {
+    const float mx_cpu[3][3] = {
+            {-1, 0, 1},
+            {-2, 0, 2},
+            {-1, 0, 1}
+    }, my_cpu[3][3] = {
+            {-1, -2, -1},
+            {0,  0,  0},
+            {1,  2,  1}
+    };
+    // Copy the image to host
+    std::vector<std::vector<uint8_t>> image(height, std::vector<uint8_t>(width));
+    std::vector<std::vector<uint8_t>> g(height, std::vector<uint8_t>(width));
+    for (int i = 0; i < height; i++)
+        cudaMemcpy(image.at(i).data(), gpu_image + width * i, width, cudaMemcpyDeviceToHost);
+    // Cast to image
+    for (int i = 0; i < width; i++) {
+        for (int j = 0; j < height; j++) {
+            int16_t window[3][3];
+            float Gx_elem, Gy_elem;
+            extract_window_cpu(image, coordinates{.x = i, .y = j}, width, height, window);
+            CONVOLUTION(window, mx_cpu, Gx_elem, threshold);
+            CONVOLUTION(window, my_cpu, Gy_elem, threshold);
+            g.at(j).at(i) = static_cast<uint8_t>(std::hypot(Gx_elem, Gy_elem));
+        }
+    }
+    // Show image
+    if (show)
+        show_grayscale_image(g);
 }

@@ -19,11 +19,11 @@ int main(int argc, char **argv) {
     uint8_t *grayscale_image;
     int width, height;
     read_to_grayscale(argv[1], &grayscale_image, &width, &height);
-    save_grayscale_image("grayscale.png", grayscale_image, width, height);
+    save_grayscale_image_gpu("grayscale.png", grayscale_image, width, height);
     // Brighten it
     std::cout << "Brightening input..." << std::endl;
     brighter(grayscale_image, width * height, alpha);
-    save_grayscale_image("brighten.png", grayscale_image, width, height);
+    save_grayscale_image_gpu("brighten.png", grayscale_image, width, height);
     // Edge detect it
     uint8_t *Gx, *Gy, *G;
     cudaMalloc(&Gx, width * height);
@@ -31,9 +31,9 @@ int main(int argc, char **argv) {
     cudaMalloc(&G, width * height);
     sobel_edge_detection(grayscale_image, width, height, threshold, Gx, Gy, G);
     // Save images
-    save_grayscale_image("Gx.png", Gx, width, height);
-    save_grayscale_image("Gy.png", Gy, width, height);
-    save_grayscale_image("G.png", G, width, height);
+    save_grayscale_image_gpu("Gx.png", Gx, width, height);
+    save_grayscale_image_gpu("Gy.png", Gy, width, height);
+    save_grayscale_image_gpu("G.png", G, width, height);
     // Cleanup
     cudaFree(G);
     cudaFree(Gy);
