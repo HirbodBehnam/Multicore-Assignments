@@ -6,12 +6,12 @@
 
 int main(int argc, char **argv) {
     // Check arguments
-    if (argc < 3) {
-        std::cout << "Program usage:" << std::endl << argv[0] << " INPUT_NAME BRIGHTNESS_ALPHA [THRESHOLD]"
+    if (argc < 2) {
+        std::cout << "Program usage:" << std::endl << argv[0] << " INPUT_NAME [BRIGHTNESS_ALPHA] [THRESHOLD]"
                   << std::endl;
         exit(1);
     }
-    float alpha = strtof(argv[2], nullptr);
+    float alpha = argc > 2 ? strtof(argv[2], nullptr) : 1.0f;
     auto threshold = static_cast<int16_t>(argc > 3 ? strtol(argv[3], nullptr, 10) : 70);
     std::cout << "Running with " << alpha << " as alpha and " << threshold << " as threshold" << std::endl;
     // Read the image

@@ -3,8 +3,8 @@
 
 // Mostly from https://github.com/fzehracetin/sobel-edge-detection-in-c
 
-#define GRID_SIZE 1024
-#define BLOCK_SIZE 1024
+#define GRID_SIZE 1
+#define BLOCK_SIZE 1
 
 struct coordinates {
     int x, y;
@@ -50,7 +50,7 @@ __device__ void extract_window(const uint8_t *image, const struct coordinates co
                 // in bounds of image
                 result = image[coordinates_to_index(current_cord, width)];
             }
-            window[i + 1][j + 1] = result;
+            window[j + 1][i + 1] = result;
         }
 }
 
@@ -64,7 +64,7 @@ __device__ void extract_window(const uint8_t *image, const struct coordinates co
     }                                                       \
     if (RESULT > THRESHOLD)                                 \
         RESULT = THRESHOLD;                                 \
-} while(0);
+} while(0)
 
 __global__ void sobel_edge_detection_gpu(const uint8_t *image, const int width, const int height,
                                          const int16_t threshold, const size_t iterations_per_thread,
