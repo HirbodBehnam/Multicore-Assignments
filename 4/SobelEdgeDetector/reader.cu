@@ -1,8 +1,7 @@
 #include <opencv2/opencv.hpp>
 #include "reader.cuh"
+#include "params.h"
 
-#define GRID_SIZE 1024
-#define BLOCK_SIZE 1024
 #define BYTES_PER_PIXEL 3
 
 /**

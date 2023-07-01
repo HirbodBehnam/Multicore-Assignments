@@ -32,6 +32,7 @@ int main(int argc, char **argv) {
     cudaMalloc(&Gx, width * height);
     cudaMalloc(&Gy, width * height);
     cudaMalloc(&G, width * height);
+    std::cout << "Edge detecting..." << std::endl;
     sobel_edge_detection(grayscale_image, width, height, threshold, Gx, Gy, G);
     // Save images
     save_grayscale_image_gpu("Gx.png", Gx, width, height);

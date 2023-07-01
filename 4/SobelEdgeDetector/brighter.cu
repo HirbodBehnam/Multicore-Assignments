@@ -1,13 +1,10 @@
 #include <iostream>
 #include "brighter.cuh"
-
-#define GRID_SIZE 1024
-#define BLOCK_SIZE 1024
+#include "params.h"
 
 __device__ float clamp_pixel(float x) {
     return max(0.0f, min(255.0f, x));
 }
-
 
 /**
  * Makes an grayscale image brighter by multiplying its pixel by a value

@@ -1,12 +1,9 @@
 #include <iostream>
-#include <vector>
 #include "sobel.cuh"
 #include "saver.cuh"
+#include "params.h"
 
 // Mostly from https://github.com/fzehracetin/sobel-edge-detection-in-c
-
-#define GRID_SIZE 1
-#define BLOCK_SIZE 1
 
 struct coordinates {
     int x, y;
