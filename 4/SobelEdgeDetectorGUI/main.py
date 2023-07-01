@@ -10,6 +10,7 @@ PROGRAM_NAME = "SobelEdgeDetector"
 input_filename = ""
 
 def view_image(path: str):
+    print("Viewing", path)
     img = Image.open(path)
     img.thumbnail((800, 800), Image.ANTIALIAS)
     img = ImageTk.PhotoImage(img)
@@ -22,6 +23,7 @@ def run_edge_detector() -> str:
     shutil.copy(PROGRAM_NAME, working_dir)
     command = ["./" + PROGRAM_NAME, input_filename, image_alpha_var.get(), image_beta_var.get(), image_threshold_var.get()]
     subprocess.Popen(command, cwd=working_dir).wait()
+    return working_dir
 
 def run_and_get_result(result_filename: str):
     if input_filename == "":
