@@ -1,59 +1,48 @@
 use crate::{Matrix, SpMV};
 
-use super::RowElement;
+#[repr(align(32))]
+#[derive(Default)]
+struct YMMBuffer([f32; 8]);
 
 #[derive(Debug, Clone)]
 pub struct SparseMatrix {
-    inner: Vec<Vec<RowElement<f32>>>,
+    inner: Vec<(Vec<f32>, Vec<usize>)>,
 }
 
 impl SparseMatrix {
     unsafe fn mul_avx2(&self, vector: &Vec<f32>) -> Vec<f32> {
         use std::arch::x86_64::*;
         let mut result: Vec<f32> = Vec::with_capacity(self.inner.len());
+        let mut vec_buffer = YMMBuffer::default();
         for row in &self.inner {
+            assert!(row.0.len() == row.1.len());
+            let (value_before, value_aligned, value_after) = row.0.align_to::<YMMBuffer>();
+            let (index_before, index_aligned, index_after) = row.1.align_to::<[usize; 8]>();
             // for each row...
-            let mut acc = 0f32;
-            for chunk in row.chunks(8) {
-                // chunk them into 8 elem data
-                let mut buffer = chunk.iter().map(|c| c.value).collect::<Vec<f32>>();
-                buffer.resize(8, 0f32);
-                let elems = _mm256_set_ps(buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7]);
-                // extract the pairwise elements from vector
-                buffer = chunk.iter().map(|c| vector[c.index]).collect::<Vec<f32>>();
-                buffer.resize(8, 0f32);
-                let vec_elems = _mm256_set_ps(buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7]);
-                // mult them together. This register has 8 float values
-                let result = _mm256_mul_ps(elems, vec_elems);
-                // mostly from https://stackoverflow.com/a/9776522/4213397
-                /*
-                 * sum[0] = x[0] + x[1]
-                 * sum[1] = x[2] + x[3]
-                 * sum[2] = x[0] + x[1]
-                 * sum[3] = x[2] + x[3]
-                 * sum[4] = x[4] + x[5]
-                 * sum[5] = x[6] + x[7]
-                 * sum[6] = x[4] + x[5]
-                 * sum[7] = x[6] + x[7]
-                 */
-                let mut sum = _mm256_hadd_ps(result, result);
-                /*
-                 * sum[0] = x[0] + x[1] + x[2] + x[3]
-                 * sum[1] = x[0] + x[1] + x[2] + x[3]
-                 * sum[2] = x[0] + x[1] + x[2] + x[3]
-                 * sum[3] = x[0] + x[1] + x[2] + x[3]
-                 * sum[4] = x[4] + x[5] + x[6] + x[7]
-                 * sum[5] = x[4] + x[5] + x[6] + x[7]
-                 * sum[6] = x[4] + x[5] + x[6] + x[7]
-                 * sum[7] = x[4] + x[5] + x[6] + x[7]
-                 */
-                sum = _mm256_hadd_ps(sum, sum);
-                let sum_high = _mm256_extractf128_ps(sum, 1);
-                let final_sum = _mm_add_ps(sum_high, _mm256_castps256_ps128(sum));
-                // accumulate
-                acc += _mm_cvtss_f32(final_sum);
+            let mut accumulator = _mm256_setzero_ps();
+            for (values, indexes) in value_aligned.iter().zip(index_aligned.iter()) {
+                // Load values into YMM registers
+                let current_matrix = _mm256_load_ps(values.0.as_ptr());
+                for (buf_index, vec_index) in indexes.iter().enumerate() {
+                    vec_buffer.0[buf_index] = vector[*vec_index];
+                }
+                let current_vector = _mm256_load_ps(vec_buffer.0.as_ptr());
+                // Fuse mult add them
+                accumulator = _mm256_fmadd_ps(current_matrix, current_vector, accumulator);
             }
-            result.push(acc);
+            // Now sum the remanding by hand
+            let mut final_accumulator = 0f32;
+            for (value, index) in value_before.iter().zip(index_before.iter()) {
+                final_accumulator += vector[*index] * (*value);
+            }
+            for (value, index) in value_after.iter().zip(index_after.iter()) {
+                final_accumulator += vector[*index] * (*value);
+            }
+            _mm256_store_ps(vec_buffer.0.as_mut_ptr(), accumulator);
+            for result in vec_buffer.0 {
+                final_accumulator += result;
+            }
+            result.push(final_accumulator);
         }
         return result;
     }
@@ -67,28 +56,19 @@ impl SpMV for SparseMatrix {
 
 impl From<Matrix<f32>> for SparseMatrix {
     fn from(matrix: Matrix<f32>) -> Self {
-        SparseMatrix {
-            inner: matrix
-                .iter() // for each row...
-                .map(|row| {
-                    // map to sparse matrix rows
-                    row.iter()
-                        .enumerate() // get the index and value together
-                        .filter_map(|(index, cell)| {
-                            // filter out the ones which have zero value
-                            if *cell == 0f32 {
-                                return None;
-                            } else {
-                                return Some(RowElement {
-                                    index,
-                                    value: *cell,
-                                });
-                            }
-                        })
-                        .collect::<Vec<RowElement<f32>>>() // convert to row
-                })
-                .collect::<Vec<Vec<RowElement<f32>>>>(), // convert to matrix
+        let mut inner = Vec::<(Vec<f32>, Vec<usize>)>::with_capacity(matrix.len());
+        for row in matrix {
+            let mut row_values = Vec::<f32>::new();
+            let mut row_indexes = Vec::<usize>::new();
+            for (index, elem) in row.iter().enumerate() {
+                if *elem != 0.0 {
+                    row_values.push(*elem);
+                    row_indexes.push(index);
+                }
+            }
+            inner.push((row_values, row_indexes));
         }
+        SparseMatrix { inner }
     }
 }
 

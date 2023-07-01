@@ -78,13 +78,13 @@ sparsity 30             time:   [27.077 ms 27.126 ms 27.190 ms]
 ```
 ### SIMD
 ```
-size 100                time:   [36.193 µs 36.442 µs 36.891 µs]
-size 1000               time:   [2.6219 ms 2.6225 ms 2.6233 ms]
-size 10000              time:   [252.78 ms 253.39 ms 254.08 ms]
-size 20000              time:   [1.0038 s 1.0046 s 1.0056 s]
-sparsity 10             time:   [94.150 ms 94.557 ms 95.183 ms]
-sparsity 20             time:   [177.54 ms 177.79 ms 178.08 ms]
-sparsity 30             time:   [253.61 ms 254.31 ms 255.07 ms]
+size 100                time:   [5.5704 µs 5.5789 µs 5.5899 µs]
+size 1000               time:   [480.99 µs 481.58 µs 482.28 µs]
+size 10000              time:   [48.910 ms 48.971 ms 49.053 ms]
+size 20000              time:   [194.12 ms 194.50 ms 194.99 ms]
+sparsity 10             time:   [18.676 ms 18.707 ms 18.742 ms]
+sparsity 20             time:   [34.790 ms 34.869 ms 34.959 ms]
+sparsity 30             time:   [48.887 ms 48.930 ms 48.981 ms]
 ```
 SIMD performs worse because I used heavy operations such as vector initialization and such. This could probably be improved if I could store the data in a single stack allocated array instead of heap allocated vector.
 ### Multithread
