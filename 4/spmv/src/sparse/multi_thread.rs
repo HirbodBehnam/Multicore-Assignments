@@ -1,4 +1,5 @@
-use std::{sync::Mutex, vec};
+use std::vec;
+use std::sync::mpsc;
 use std::thread;
 use crate::{Matrix, SpMV};
 
@@ -9,25 +10,53 @@ pub struct SparseMatrix {
     inner: Vec<Vec<RowElement<f32>>>,
 }
 
+impl SparseMatrix {
+    fn chunk_index(total_index: usize, thread_count: usize) -> Vec<(usize, usize)> {
+        let mut result = Vec::with_capacity(thread_count);
+        if total_index < thread_count {
+            // Fuck it, single thread it
+            result.push((0, total_index));
+            return result;
+        }
+        let div = total_index / thread_count;
+        let mut remainder = total_index % thread_count;
+        let mut current_start = 0;
+        for _ in 0..thread_count {
+            let mut end = current_start + div;
+            if remainder != 0 {
+                remainder -= 1;
+                end += 1;
+            }
+            result.push((current_start, end));
+            current_start = end;
+        }
+        return result;
+    }
+}
+
 impl SpMV for SparseMatrix {
     fn mul(&self, vector: &Vec<f32>) -> Vec<f32> {
-        const THREAD_NUMBER: usize = 6;
-        let result = Mutex::from(vec![0f32; vector.len()]);
+        const THREAD_NUMBER: usize = 8;
+        let mut result = vec![0f32; vector.len()];
         thread::scope(|s| {
-            for i in 0..THREAD_NUMBER {
-                let mutex_ref = &result; // what the fuck rust?
+            let (result_sender, result_receiver) = mpsc::channel::<(f32, usize)>();
+            for (start, end) in SparseMatrix::chunk_index(self.inner.len(), THREAD_NUMBER) {
+                let local_sender = result_sender.clone();
                 let matrix_data = &self.inner;
                 s.spawn(move || {
-                    let mut index = i;
-                    while index < matrix_data.len() {
-                        let cell: f32 = matrix_data[index].iter().map(|elem| elem.value * vector[elem.index]).sum();
-                        mutex_ref.lock().unwrap()[index] = cell;
-                        index += THREAD_NUMBER;
+                    for i in start..end {
+                        let cell: f32 = matrix_data[i].iter().map(|elem| elem.value * vector[elem.index]).sum();
+                        local_sender.send((cell, i)).unwrap();
                     }
                 });
             }
+            // Get results
+            for _ in 0..vector.len() {
+                let (data, index) = result_receiver.recv().unwrap();
+                result[index] = data;
+            }
         });
-        return result.into_inner().unwrap();
+        return result;
     }
 }
 
@@ -69,6 +98,14 @@ mod tests {
     const STRESS_MATRIX_SIZE: usize = 1000;
 
     type SpmvMatrix = SparseMatrix;
+
+    #[test]
+    fn chunk_index_test() {
+        assert_eq!(SpmvMatrix::chunk_index(7, 8), [(0, 7)]);
+        assert_eq!(SpmvMatrix::chunk_index(8, 8), [(0, 1), (1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8)]);
+        assert_eq!(SpmvMatrix::chunk_index(9, 8), [(0, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9)]);
+        assert_eq!(SpmvMatrix::chunk_index(10, 8), [(0, 2), (2, 4), (4, 5), (5, 6), (6, 7), (7, 8), (8, 9), (9, 10)]);
+    }
 
     #[test]
     fn smoke() {
