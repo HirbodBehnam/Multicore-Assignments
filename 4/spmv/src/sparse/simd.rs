@@ -1,50 +1,71 @@
 use crate::{Matrix, SpMV};
 
+use super::RowElement;
+
 #[repr(align(32))]
-#[derive(Default)]
+#[derive(Debug, Default, Clone)]
 struct YMMBuffer([f32; 8]);
+
+#[repr(align(32))]
+#[derive(Debug, Default, Clone)]
+struct IndexBuffer([i32; 8]);
 
 #[derive(Debug, Clone)]
 pub struct SparseMatrix {
-    inner: Vec<(Vec<f32>, Vec<usize>)>,
+    values: Vec<Vec<YMMBuffer>>,
+    indexes: Vec<Vec<IndexBuffer>>,
+    real_rows: usize,
 }
 
 impl SparseMatrix {
+    // From https://sci-hub.ru/10.1145/3225058.3225100
     unsafe fn mul_avx2(&self, vector: &Vec<f32>) -> Vec<f32> {
         use std::arch::x86_64::*;
-        let mut result: Vec<f32> = Vec::with_capacity(self.inner.len());
+        assert_eq!(self.values.len(), self.indexes.len());
+        let mut result: Vec<f32> = Vec::with_capacity(self.values.len() * 8);
         let mut vec_buffer = YMMBuffer::default();
-        for row in &self.inner {
-            assert!(row.0.len() == row.1.len());
-            let (value_before, value_aligned, value_after) = row.0.align_to::<YMMBuffer>();
-            let (index_before, index_aligned, index_after) = row.1.align_to::<[usize; 8]>();
-            // for each row...
+        for (values, indexes) in self.values.iter().zip(&self.indexes) {
+            assert_eq!(values.len(), indexes.len());
+            // for each 4 columns...
             let mut accumulator = _mm256_setzero_ps();
-            for (values, indexes) in value_aligned.iter().zip(index_aligned.iter()) {
+            for (value, index) in values.iter().zip(indexes.iter()) {
                 // Load values into YMM registers
-                let current_matrix = _mm256_load_ps(values.0.as_ptr());
-                for (buf_index, vec_index) in indexes.iter().enumerate() {
-                    vec_buffer.0[buf_index] = vector[*vec_index];
+                let current_matrix = _mm256_load_ps(value.0.as_ptr());
+                for (buf_index, vec_index) in index.0.iter().enumerate() {
+                    vec_buffer.0[buf_index] = vector[*vec_index as usize];
                 }
                 let current_vector = _mm256_load_ps(vec_buffer.0.as_ptr());
                 // Fuse mult add them
                 accumulator = _mm256_fmadd_ps(current_matrix, current_vector, accumulator);
             }
-            // Now sum the remanding by hand
-            let mut final_accumulator = 0f32;
-            for (value, index) in value_before.iter().zip(index_before.iter()) {
-                final_accumulator += vector[*index] * (*value);
-            }
-            for (value, index) in value_after.iter().zip(index_after.iter()) {
-                final_accumulator += vector[*index] * (*value);
-            }
             _mm256_store_ps(vec_buffer.0.as_mut_ptr(), accumulator);
-            for result in vec_buffer.0 {
-                final_accumulator += result;
-            }
-            result.push(final_accumulator);
+            result.extend_from_slice(&vec_buffer.0);
         }
+        result.resize(self.real_rows, 0f32);
         return result;
+    }
+
+    fn to_semi_sparse(matrix: Matrix<f32>) -> Vec<Vec<RowElement<f32>>> {
+        matrix
+        .iter() // for each row...
+        .map(|row| {
+            // map to sparse matrix rows
+            row.iter()
+                .enumerate() // get the index and value together
+                .filter_map(|(index, cell)| {
+                    // filter out the ones which have zero value
+                    if *cell == 0f32 {
+                        return None;
+                    } else {
+                        return Some(RowElement {
+                            index,
+                            value: *cell,
+                        });
+                    }
+                })
+                .collect::<Vec<RowElement<f32>>>() // convert to row
+        })
+        .collect::<Vec<Vec<RowElement<f32>>>>()
     }
 }
 
@@ -56,19 +77,35 @@ impl SpMV for SparseMatrix {
 
 impl From<Matrix<f32>> for SparseMatrix {
     fn from(matrix: Matrix<f32>) -> Self {
-        let mut inner = Vec::<(Vec<f32>, Vec<usize>)>::with_capacity(matrix.len());
-        for row in matrix {
-            let mut row_values = Vec::<f32>::new();
-            let mut row_indexes = Vec::<usize>::new();
-            for (index, elem) in row.iter().enumerate() {
-                if *elem != 0.0 {
-                    row_values.push(*elem);
-                    row_indexes.push(index);
+        let rows = matrix.len();
+        let semi_sparse = SparseMatrix::to_semi_sparse(matrix);
+        let mut values_inner = Vec::<Vec<YMMBuffer>>::with_capacity(semi_sparse.len() / 8);
+        let mut indexes_inner = Vec::<Vec<IndexBuffer>>::with_capacity(semi_sparse.len() / 8);
+        for rows_batch in semi_sparse.chunks(8) {
+            let mut iterators: Vec<std::slice::Iter<'_, RowElement<f32>>> = rows_batch.iter().map(|row| row.iter()).collect();
+            let mut current_values = Vec::<YMMBuffer>::new();
+            let mut current_indexes = Vec::<IndexBuffer>::new();
+            loop {
+                let mut current_value = YMMBuffer::default();
+                let mut current_index = IndexBuffer::default();
+                let mut saw_non_none = false;
+                for (index, row_iterator) in iterators.iter_mut().enumerate() {
+                    if let Some(elem) = row_iterator.next() {
+                        saw_non_none = true;
+                        current_value.0[index] = elem.value;
+                        current_index.0[index] = elem.index as i32;
+                    }
                 }
+                if !saw_non_none {
+                    break;
+                }
+                current_values.push(current_value);
+                current_indexes.push(current_index);
             }
-            inner.push((row_values, row_indexes));
+            values_inner.push(current_values);
+            indexes_inner.push(current_indexes);
         }
-        SparseMatrix { inner }
+        SparseMatrix { values: values_inner, indexes: indexes_inner, real_rows: rows }
     }
 }
 
@@ -83,6 +120,24 @@ mod tests {
     const STRESS_MATRIX_SIZE: usize = 1000;
 
     type SpmvMatrix = SparseMatrix;
+
+    #[test]
+    fn convert() {
+        let matrix: Matrix<f32> = vec![
+            vec![0.0, 1.0, 0.0],
+            vec![2.0, 0.0, 3.0],
+            vec![0.0, 0.0, 4.0],
+        ];
+        let spmv = SpmvMatrix::from(matrix);
+        assert_eq!(spmv.indexes.len(), 1);
+        assert_eq!(spmv.values.len(), 1);
+        assert_eq!(spmv.indexes[0].len(), 2);
+        assert_eq!(spmv.values[0].len(), 2);
+        assert_eq!(&spmv.indexes[0][0].0, &[1, 0, 2, 0, 0, 0, 0, 0]);
+        assert_eq!(&spmv.values[0][0].0, &[1f32, 2f32, 4f32, 0f32, 0f32, 0f32, 0f32, 0f32]);
+        assert_eq!(&spmv.indexes[0][1].0, &[0, 2, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(&spmv.values[0][1].0, &[0f32, 3f32, 0f32, 0f32, 0f32, 0f32, 0f32, 0f32]);
+    }
 
     #[test]
     fn smoke() {
